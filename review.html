@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>백지복습</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f0f0f;
+    --bg-topic: #131313;
+    --row-border: #232323;
+    --border:   #282828;
+    --blue:     #4f8ef7;
+    --blank-bg: #181818;
+    --blank-bar:#2a2a2a;
+  }
+
+  html, body { height: 100%; background: var(--bg); font-family: 'Noto Sans KR', -apple-system, sans-serif; color: #e0e0e0; }
+
+  /* ── 헤더 ── */
+  #header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: 11px 16px; display: flex; align-items: center; gap: 8px;
+  }
+  #app-title { flex: 1; font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 0.05em; }
+  #toast {
+    font-size: 11px; color: #4fcf88; background: #0c2018;
+    border: 1px solid #1b3e28; border-radius: 6px; padding: 3px 9px;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+  .hbtn {
+    background: transparent; border: 1px solid #303030; border-radius: 7px;
+    padding: 7px 14px; font-size: 12px; font-weight: 500; color: #888;
+    cursor: pointer; font-family: inherit;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .hbtn:hover { border-color: #555; color: #ccc; background: #1a1a1a; }
+  .hbtn.active { border-color: var(--blue); color: var(--blue); background: #111d33; }
+
+  /* ── 탭 바 ── */
+  #tab-bar {
+    display: flex; align-items: stretch; background: var(--bg);
+    border-bottom: 1px solid var(--border); overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #tab-bar::-webkit-scrollbar { display: none; }
+  #tab-list { display: flex; flex: 1; }
+  .tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 14px; cursor: pointer; white-space: nowrap;
+    font-size: 13px; color: #555;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none; -webkit-user-select: none;
+  }
+  .tab.active { color: #ddd; border-bottom-color: var(--blue); }
+  .tab-name { outline: none; background: transparent; border: none; color: inherit; font-family: inherit; font-size: inherit; cursor: pointer; }
+  .tab-name:focus { color: #fff; border-bottom: 1px solid var(--blue); }
+  .tab-x { background: transparent; border: none; color: #333; font-size: 14px; cursor: pointer; padding: 0 1px; line-height: 1; transition: color 0.15s; }
+  .tab-x:hover { color: #c04444; }
+  #add-tab-btn {
+    background: transparent; border: none; color: #3a3a3a; font-size: 19px;
+    cursor: pointer; padding: 0 16px; transition: color 0.15s; flex-shrink: 0; line-height: 1;
+  }
+  #add-tab-btn:hover { color: var(--blue); }
+
+  /* ── 바디 ── */
+  #body { padding-bottom: 80px; }
+
+  /* ── 행 ── */
+  .row { display: flex; align-items: stretch; border-bottom: 1px solid var(--row-border); }
+  .row:hover .xbtn { opacity: 0.4; }
+  .row:hover .xbtn:hover { opacity: 1; color: #c04444; }
+
+  /* 주제 셀 */
+  .topic-cell {
+    flex-shrink: 0; background: var(--bg-topic);
+    padding: 14px 10px 14px 12px;
+    display: flex; align-items: flex-start; gap: 6px;
+    border-right: 1px solid var(--border);
+  }
+  .topic-inner { flex: 1; min-width: 0; }
+  .topic-ta {
+    background: transparent; border: none; outline: none;
+    font-family: inherit; font-size: 14px; font-weight: 700; color: #fff;
+    resize: none; overflow: hidden; width: 100%; line-height: 1.65; min-height: 24px;
+    field-sizing: content; /* 최신 브라우저 대응 자동 높이 조절 */
+  }
+  .topic-ta::placeholder { color: #383838; }
+
+  /* 드래그 핸들 */
+  .divider { width: 6px; flex-shrink: 0; cursor: col-resize; position: relative; }
+  .divider::after {
+    content: ''; position: absolute; top: 0; bottom: 0; left: 2px;
+    width: 1px; background: var(--border); transition: background 0.15s, width 0.1s, left 0.1s;
+  }
+  .divider:hover::after, .divider.dragging::after { background: var(--blue); width: 2px; left: 1.5px; }
+
+  /* 내용 셀 */
+  .para-cell { flex: 1; padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .para-row { display: flex; align-items: flex-start; gap: 7px; }
+
+  /* 체크박스 */
+  .chk-wrap {
+    width: 18px; height: 18px; flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 4px; opacity: 0.28; transition: opacity 0.15s;
+  }
+  .chk-wrap.checked { opacity: 1; }
+  .chk-wrap svg.off { display: block; } .chk-wrap svg.on { display: none; }
+  .chk-wrap.checked svg.off { display: none; } .chk-wrap.checked svg.on { display: block; }
+
+  .para-ta {
+    flex: 1; background: transparent; border: none; border-bottom: 1px solid #1f1f1f;
+    outline: none; font-family: inherit; font-size: 13.5px; color: #ccc;
+    padding: 4px 0 6px; resize: none; overflow: hidden; line-height: 1.7; min-height: 28px;
+    transition: border-color 0.2s;
+    field-sizing: content; /* 최신 브라우저 대응 자동 높이 조절 */
+  }
+  .para-ta::placeholder { color: #383838; }
+  .para-ta:focus { border-bottom-color: #3a6ad4; }
+
+  /* 블랭크 */
+  .blank {
+    flex: 1; min-height: 34px; background: var(--blank-bg); border: 1px dashed #2c2c2c;
+    border-radius: 5px; display: flex; flex-direction: column; align-items: flex-start;
+    justify-content: center; gap: 7px; padding: 10px 14px; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .blank:hover { border-color: var(--blue); }
+  .blank-bar { height: 8px; background: var(--blank-bar); border-radius: 3px; }
+  .blank-text { font-size: 13px; color: #bbb; line-height: 1.6; white-space: pre-wrap; width: 100%; }
+
+  /* × 삭제 버튼 */
+  .xbtn {
+    background: transparent; border: none; color: #c04444; font-size: 16px;
+    cursor: pointer; padding: 0 3px; line-height: 1; flex-shrink: 0; margin-top: 3px;
+    opacity: 0; transition: opacity 0.15s, color 0.15s;
+  }
+
+  /* row-footer */
+  .row-footer { display: flex; gap: 7px; margin-top: 9px; align-items: center; }
+  .soft-btn {
+    background: #1c1c1c; border: 1px solid #2e2e2e; border-radius: 6px;
+    font-family: inherit; font-size: 12px; font-weight: 500; color: #777;
+    cursor: pointer; padding: 5px 12px;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .soft-btn:hover { color: #ccc; border-color: #555; background: #242424; }
+  .soft-btn.on { color: var(--blue); border-color: #2a3f6a; background: #111d33; }
+
+  /* 주제 추가 */
+  #add-sec-btn {
+    display: block; width: calc(100% - 40px); margin: 16px 20px;
+    background: #181818; border: 1px solid #2a2a2a; border-radius: 8px;
+    font-family: inherit; font-size: 13px; font-weight: 500; color: #666;
+    cursor: pointer; padding: 12px 0;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  #add-sec-btn:hover { border-color: var(--blue); color: var(--blue); background: #111d33; }
+
+  /* 탭 confirm */
+  .tab-confirm { display: flex; gap: 4px; align-items: center; }
+  .tab-confirm span { font-size: 11px; cursor: pointer; padding: 2px 7px; border-radius: 4px; }
+  .tab-confirm .del { color: #e05555; background: #2a1515; }
+  .tab-confirm .cancel { color: #555; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span id="app-title">백지복습</span>
+  <span id="toast">✓ 저장됨</span>
+  <button class="hbtn" id="blank-all-btn">전체 블랭크</button>
+  <button class="hbtn" id="save-btn">저장</button>
+</div>
+
+<div id="tab-bar">
+  <div id="tab-list"></div>
+  <button id="add-tab-btn">＋</button>
+</div>
+
+<div id="body"></div>
+<button id="add-sec-btn">＋ 주제 추가</button>
+
+<script>
+/* ══════════════ EMBEDDED DATA (저장 시 자동 교체) ══════════════ */
+const EMBEDDED = null; /* __EMBEDDED_DATA__ */
+
+/* ══════════════ STORAGE ══════════════ */
+const LS_TABS = 'br-tabs-v1';
+const lsData  = id => `br-data-${id}`;
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function newSection() {
+  return { id: uid(), topic: '', paragraphs: [''], blankParas: [false] };
+}
+
+/* 탭 초기화: embedded > localStorage > 기본값 */
+let tabs, activeTabId;
+const initSrc = EMBEDDED || (() => { try { return JSON.parse(localStorage.getItem(LS_TABS)); } catch {} return null; })();
+if (initSrc && initSrc.tabs && initSrc.tabs.length) {
+  tabs = initSrc.tabs; activeTabId = initSrc.activeId || initSrc.tabs[0].id;
+} else {
+  const id = uid(); tabs = [{ id, name: '법 1' }]; activeTabId = id;
+}
+
+/* 섹션 초기화: embedded > localStorage > 기본값 */
+let sections = [];
+function loadSections(tabId) {
+  if (EMBEDDED && EMBEDDED.sectionMap && EMBEDDED.sectionMap[tabId])
+    return EMBEDDED.sectionMap[tabId];
+  try { const r = localStorage.getItem(lsData(tabId)); if (r) return JSON.parse(r); } catch {}
+  return [newSection()];
+}
+function saveAll() {
+  try {
+    localStorage.setItem(LS_TABS, JSON.stringify({ tabs, activeId: activeTabId }));
+    localStorage.setItem(lsData(activeTabId), JSON.stringify(sections));
+  } catch {}
+}
+
+let colW = parseInt(localStorage.getItem('br-colw') || '200');
+let revealed = {};
+let confirmDeleteTabId = null;
+
+/* ══════════════ TABS ══════════════ */
+function renderTabs() {
+  const list = document.getElementById('tab-list');
+  list.innerHTML = '';
+  tabs.forEach(tab => {
+    const div = document.createElement('div');
+    div.className = 'tab' + (tab.id === activeTabId ? ' active' : '');
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'tab-name';
+    nameEl.textContent = tab.name;
+    nameEl.contentEditable = 'false';
+    nameEl.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      nameEl.contentEditable = 'true'; nameEl.focus();
+      const r = document.createRange(); r.selectNodeContents(nameEl); r.collapse(false);
+      window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+    });
+    nameEl.addEventListener('blur', () => {
+      nameEl.contentEditable = 'false';
+      const v = nameEl.textContent.trim();
+      if (v) { tab.name = v; saveAll(); } else nameEl.textContent = tab.name;
+    });
+    nameEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+      if (e.key === 'Escape') { nameEl.textContent = tab.name; nameEl.blur(); }
+    });
+    div.appendChild(nameEl);
+
+    if (tabs.length > 1) {
+      if (confirmDeleteTabId === tab.id) {
+        const c = document.createElement('span');
+        c.className = 'tab-confirm';
+        c.innerHTML = '<span class="del">삭제</span><span class="cancel">취소</span>';
+        c.querySelector('.del').onclick = e => { e.stopPropagation(); deleteTab(tab.id); };
+        c.querySelector('.cancel').onclick = e => { e.stopPropagation(); confirmDeleteTabId = null; renderTabs(); };
+        div.appendChild(c);
+      } else {
+        const x = document.createElement('button');
+        x.className = 'tab-x'; x.textContent = '×';
+        x.onclick = e => { e.stopPropagation(); confirmDeleteTabId = tab.id; renderTabs(); };
+        div.appendChild(x);
+      }
+    }
+
+    div.addEventListener('click', () => { if (tab.id !== activeTabId) switchTab(tab.id); });
+    list.appendChild(div);
+  });
+}
+
+/* ══════════════ SECTIONS ══════════════ */
+function autoResize(ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+
+function renderSections() {
+  const body = document.getElementById('body');
+  body.innerHTML = '';
+  updateBlankAllBtn();
+
+  sections.forEach((sec, si) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    /* 주제 셀 */
+    const topicCell = document.createElement('div');
+    topicCell.className = 'topic-cell';
+    topicCell.style.width = colW + 'px';
+
+    const inner = document.createElement('div');
+    inner.className = 'topic-inner';
+    const tTa = document.createElement('textarea');
+    tTa.className = 'topic-ta'; tTa.rows = 1;
+    tTa.placeholder = `주제 ${si + 1}`; tTa.value = sec.topic;
+    tTa.addEventListener('input', () => { sec.topic = tTa.value; autoResize(tTa); saveAll(); });
+    setTimeout(() => autoResize(tTa), 0);
+    inner.appendChild(tTa);
+    topicCell.appendChild(inner);
+
+    if (sections.length > 1) {
+      const x = document.createElement('button');
+      x.className = 'xbtn'; x.textContent = '×'; x.title = '행 삭제';
+      x.style.opacity = '0.35';
+      x.onclick = () => { sections.splice(si, 1); saveAll(); renderSections(); };
+      topicCell.appendChild(x);
+    }
+
+    /* 드래그 핸들 */
+    const div = document.createElement('div');
+    div.className = 'divider';
+    bindDivider(div);
+
+    /* 내용 셀 */
+    const paraCell = document.createElement('div');
+    paraCell.className = 'para-cell';
+
+    function renderParas() {
+      const footer = paraCell.querySelector('.row-footer');
+      while (paraCell.firstChild !== footer) paraCell.removeChild(paraCell.firstChild);
+
+      sec.paragraphs.forEach((p, i) => {
+        const pRow = document.createElement('div');
+        pRow.className = 'para-row';
+
+        /* 체크 */
+        const chk = makeChk(sec.blankParas[i], () => {
+          sec.blankParas[i] = !sec.blankParas[i];
+          if (!sec.blankParas[i]) delete revealed[`${sec.id}-${i}`];
+          saveAll(); renderParas(); updateBlankAllBtn();
+        });
+        pRow.appendChild(chk);
+
+        const key = `${sec.id}-${i}`;
+        if (sec.blankParas[i]) {
+          /* 블랭크 */
+          const blank = document.createElement('div');
+          blank.className = 'blank';
+          if (revealed[key]) {
+            const t = document.createElement('span');
+            t.className = 'blank-text'; t.textContent = p || '—';
+            blank.appendChild(t);
+            blank.onclick = () => { delete revealed[key]; renderParas(); };
+          } else {
+            /* 내용 길이 암시하는 바 (짧/중/긴) */
+            const len = p.length;
+            const bars = len > 40 ? 3 : len > 15 ? 2 : 1;
+            for (let b = 0; b < bars; b++) {
+              const bar = document.createElement('div');
+              bar.className = 'blank-bar';
+              bar.style.width = (b === bars - 1 ? (55 + Math.random() * 25) : (75 + Math.random() * 20)) + '%';
+              blank.appendChild(bar);
+            }
+            blank.onclick = () => { revealed[key] = true; renderParas(); };
+          }
+          pRow.appendChild(blank);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.className = 'para-ta'; ta.rows = 1;
+          ta.placeholder = `내용 ${i + 1}`; ta.value = p;
+          ta.addEventListener('input', () => { sec.paragraphs[i] = ta.value; autoResize(ta); saveAll(); });
+          setTimeout(() => autoResize(ta), 0);
+          pRow.appendChild(ta);
+          pRow._ta = ta;
+        }
+
+        /* × */
+        const x = document.createElement('button');
+        x.className = 'xbtn'; x.textContent = '×';
+        x.onclick = () => { sec.paragraphs.splice(i,1); sec.blankParas.splice(i,1); delete revealed[key]; saveAll(); renderParas(); };
+        pRow.appendChild(x);
+
+        paraCell.insertBefore(pRow, footer);
+      });
+    }
+
+    /* 푸터 */
+    const footer = document.createElement('div');
+    footer.className = 'row-footer';
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'soft-btn'; addBtn.textContent = '+ 내용';
+    addBtn.onclick = () => {
+      sec.paragraphs.push(''); sec.blankParas.push(false); saveAll(); renderParas();
+      /* 새 textarea로 포커스 */
+      const rows = paraCell.querySelectorAll('.para-row');
+      const last = rows[rows.length - 1];
+      if (last && last._ta) last._ta.focus();
+      else { const tas = paraCell.querySelectorAll('.para-ta'); if (tas.length) tas[tas.length-1].focus(); }
+    };
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'soft-btn';
+    const refreshAllBtn = () => {
+      const all = sec.blankParas.length > 0 && sec.blankParas.every(Boolean);
+      allBtn.textContent = all ? '■ 전체 공개' : '■ 전체 블랭크';
+      allBtn.classList.toggle('on', all);
+    };
+    refreshAllBtn();
+    allBtn.onclick = () => {
+      const all = sec.blankParas.every(Boolean);
+      sec.blankParas = sec.blankParas.map(() => !all);
+      if (all) sec.paragraphs.forEach((_, i) => delete revealed[`${sec.id}-${i}`]);
+      saveAll(); refreshAllBtn(); renderParas(); updateBlankAllBtn();
+    };
+
+    footer.appendChild(addBtn);
+    footer.appendChild(allBtn);
+    paraCell.appendChild(footer);
+    renderParas();
+
+    row.appendChild(topicCell);
+    row.appendChild(div);
+    row.appendChild(paraCell);
+    body.appendChild(row);
+  });
+}
+
+/* ── 체크박스 ── */
+function makeChk(checked, cb) {
+  const w = document.createElement('div');
+  w.className = 'chk-wrap' + (checked ? ' checked' : '');
+  w.innerHTML = `
+    <svg class="on" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <polyline points="2.5,8 6.5,12 13.5,4" stroke="#4f8ef7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <svg class="off" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <polyline points="2.5,8 6.5,12 13.5,4" stroke="#555" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  w.onclick = cb;
+  return w;
+}
+
+/* ── 전체 블랭크 버튼 ── */
+function updateBlankAllBtn() {
+  const btn = document.getElementById('blank-all-btn');
+  const all = sections.length > 0 && sections.every(s => s.blankParas.length > 0 && s.blankParas.every(Boolean));
+  btn.textContent = all ? '전체 공개' : '전체 블랭크';
+  btn.classList.toggle('active', all);
+}
+
+/* ══════════════ 드래그 ══════════════ */
+function bindDivider(divider) {
+  let sx, sw;
+  const move = x => {
+    colW = Math.max(100, Math.min(500, sw + x - sx));
+    document.querySelectorAll('.topic-cell').forEach(el => el.style.width = colW + 'px');
+    localStorage.setItem('br-colw', colW);
+  };
+  divider.addEventListener('mousedown', e => {
+    e.preventDefault(); sx = e.clientX; sw = colW;
+    divider.classList.add('dragging');
+    const mm = e2 => move(e2.clientX);
+    const mu = () => { divider.classList.remove('dragging'); window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); };
+    window.addEventListener('mousemove', mm); window.addEventListener('mouseup', mu);
+  });
+  divider.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sw = colW;
+    const tm = e2 => move(e2.touches[0].clientX);
+    const tu = () => { window.removeEventListener('touchmove', tm); window.removeEventListener('touchend', tu); };
+    window.addEventListener('touchmove', tm, { passive: true }); window.addEventListener('touchend', tu);
+  });
+}
+
+/* ══════════════ 탭 조작 ══════════════ */
+function switchTab(id) {
+  activeTabId = id; revealed = {};
+  sections = loadSections(id); saveAll();
+  renderTabs(); renderSections();
+}
+function deleteTab(id) {
+  try { localStorage.removeItem(lsData(id)); } catch {}
+  tabs = tabs.filter(t => t.id !== id);
+  confirmDeleteTabId = null;
+  if (activeTabId === id) activeTabId = tabs[0].id;
+  sections = loadSections(activeTabId);
+  saveAll(); renderTabs(); renderSections();
+}
+
+/* ══════════════ 저장 (데이터 embed) ══════════════ */
+document.getElementById('save-btn').onclick = () => {
+  saveAll();
+
+  /* 모든 탭의 섹션 데이터 수집 */
+  const sectionMap = {};
+  tabs.forEach(t => {
+    sectionMap[t.id] = (t.id === activeTabId)
+      ? sections
+      : (() => { try { return JSON.parse(localStorage.getItem(lsData(t.id))); } catch {} return [newSection()]; })();
+  });
+
+  const embeddedJson = JSON.stringify({ tabs, activeId: activeTabId, sectionMap });
+  let html = document.documentElement.outerHTML;
+  html = html.replace('const EMBEDDED = null; /* __EMBEDDED_DATA__ */', `const EMBEDDED = ${embeddedJson};`);
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = '백지복습.html'; a.click(); URL.revokeObjectURL(a.href);
+
+  const t = document.getElementById('toast');
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800);
+};
+
+document.getElementById('blank-all-btn').onclick = () => {
+  const all = sections.every(s => s.blankParas.every(Boolean));
+  sections.forEach(s => { s.blankParas = s.blankParas.map(() => !all); });
+  if (all) revealed = {};
+  saveAll(); renderSections();
+};
+
+document.getElementById('add-tab-btn').onclick = () => {
+  const id = uid();
+  tabs.push({ id, name: `법 ${tabs.length + 1}` });
+  switchTab(id);
+};
+
+document.getElementById('add-sec-btn').onclick = () => {
+  sections.push(newSection()); saveAll(); renderSections();
+  /* 새 주제 textarea 포커스 */
+  const tas = document.querySelectorAll('.topic-ta');
+  if (tas.length) tas[tas.length - 1].focus();
+};
+
+/* ══════════════ INIT ══════════════ */
+sections = loadSections(activeTabId);
+renderTabs();
+renderSections();
+</script>
+</body>
+</html>
